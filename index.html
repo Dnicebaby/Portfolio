@@ -1140,3 +1140,140 @@ function _pfCleanBlacklist() {
 </script>
 </body>
 </html>
+// ─── INITIALISER LES ÉCOUTEURS CORRECTEMENT ───
+function initAudioPlayer() {
+  var audio = document.getElementById('audio-player');
+  if (!audio) {
+    console.error('Audio player element not found');
+    return;
+  }
+  
+  audio.addEventListener('timeupdate', updateTimeDisplay);
+  audio.addEventListener('ended', function() {
+    console.log('Track ended');
+    nextTrack();
+  });
+  
+  audio.addEventListener('error', function(e) {
+    console.error('Audio error:', e);
+    alert('Cannot load audio. Check URL and CORS settings.');
+  });
+  
+  // Vérifier les problèmes de CORS
+  audio.crossOrigin = "anonymous";
+}
+
+// ─── CHARGER LA PLAYLIST CORRECTEMENT ───
+function loadPlaylist() {
+  var raw = localStorage.getItem('pf_playlist');
+  if (raw) {
+    try {
+      playlist = JSON.parse(raw);
+      renderMusicList();
+      if (playlist.length > 0) {
+        loadTrack(0);
+        document.getElementById('music-badge').style.display = 'flex';
+      }
+    } catch (e) {
+      console.warn('Playlist load failed:', e.message);
+    }
+  } else {
+    console.log('No playlist found in localStorage');
+  }
+}
+
+// ─── CHARGER UNE PISTE AVEC VÉRIFICATION ───
+function loadTrack(idx) {
+  if (idx < 0 || idx >= playlist.length) {
+    console.error('Invalid track index:', idx);
+    return;
+  }
+  
+  currentTrackIndex = idx;
+  var track = playlist[idx];
+  var audio = document.getElementById('audio-player');
+  
+  if (!audio) {
+    console.error('Audio element not found');
+    return;
+  }
+  
+  // ✅ Vérifier l'URL
+  if (!track.url || track.url.trim() === '') {
+    console.error('Invalid track URL:', track);
+    alert('Track URL is invalid');
+    return;
+  }
+  
+  console.log('Loading track:', track.title, 'from', track.url);
+  
+  audio.src = track.url;
+  document.getElementById('now-playing-track').textContent = track.title;
+  document.getElementById('play-btn').textContent = '▶';
+  isPlaying = false;
+  
+  // ✅ Essayer de précharger
+  audio.load();
+}
+
+// ─── AJOUTER UNE PISTE AVEC VALIDATION ───
+function addMusicTrack() {
+  var url = document.getElementById('music-url').value.trim();
+  var title = document.getElementById('music-title').value.trim() || 'Untitled Track';
+  
+  if (!url) {
+    alert('Please enter a URL');
+    return;
+  }
+  
+  // ✅ Vérifier que c'est un lien valide
+  try {
+    new URL(url);
+  } catch (e) {
+    alert('Invalid URL format');
+    return;
+  }
+  
+  // ✅ Accepter uniquement les formats audio
+  var validFormats = ['.mp3', '.wav', '.ogg', '.m4a', '.webm'];
+  var hasValidFormat = validFormats.some(fmt => url.toLowerCase().includes(fmt));
+  
+  if (!hasValidFormat) {
+    alert('URL must point to an audio file (MP3, WAV, OGG, M4A, WEBM)');
+    return;
+  }
+  
+  playlist.push({ title: title, url: url });
+  document.getElementById('music-url').value = '';
+  document.getElementById('music-title').value = 'Untitled Track';
+  
+  renderMusicList();
+  
+  if (playlist.length === 1) {
+    loadTrack(0);
+  }
+  
+  saveState();
+  alert('Track added successfully!');
+}
+
+// ─── INITIALISER AU DÉMARRAGE ───
+window.addEventListener('load', function() {
+  console.log('Window loaded - initializing audio player');
+  initAudioPlayer();
+  loadPlaylist();
+});
+
+// Alternative si 'load' ne déclenche pas :
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM ready - initializing audio player');
+    initAudioPlayer();
+    loadPlaylist();
+  });
+} else {
+  console.log('DOM already ready - initializing audio player');
+  initAudioPlayer();
+  loadPlaylist();
+}
+
