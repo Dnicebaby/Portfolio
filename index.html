@@ -1168,17 +1168,38 @@ function addPhoto(){
       return r.json();
     })
     .then(function(data){
-      if(!data.secure_url) throw new Error(data.error && data.error.message ? data.error.message : 'Upload failed');
-      photos.push({id:nextId++, title:title, cat:cat, src:data.secure_url});
-      uploadedSrc=null; uploadedFile=null;
-      document.getElementById('photo-title').value='';
-      var prev=document.getElementById('upload-preview'); prev.src=''; prev.style.display='none';
-      document.querySelector('.upload-icon').style.display='block';
-      document.querySelector('.upload-hint').style.display='block';
-      document.getElementById('upload-zone').querySelector('input').value='';
-      renderGallery(); saveState();
-      if(currentFilter!=='all'&&currentFilter!==cat) filterGallery('all');
-      addBtn.textContent='+ Add to portfolio'; addBtn.disabled=false;
+  if(!data.secure_url) throw new Error(data.error && data.error.message ? data.error.message : 'Upload failed');
+  
+  // Create new photo object
+  var newPhoto = {id:nextId++, title:title, cat:cat, src:data.secure_url};
+  
+  // Get current photos from localStorage
+  var currentPhotos = JSON.parse(localStorage.getItem('pf_photos') || '[]');
+  
+  // Add new photo to array
+  currentPhotos.push(newPhoto);
+  
+  // Save to localStorage explicitly
+  localStorage.setItem('pf_photos', JSON.stringify(currentPhotos));
+  
+  // Update the in-memory array
+  photos = currentPhotos;
+  
+  // Reset UI
+  uploadedSrc=null; uploadedFile=null;
+  document.getElementById('photo-title').value='';
+  var prev=document.getElementById('upload-preview'); prev.src=''; prev.style.display='none';
+  document.querySelector('.upload-icon').style.display='none';
+  document.querySelector('.upload-hint').style.display='none';
+  document.getElementById('upload-zone').querySelector('input').value='';
+  
+  // Render and save
+  renderGallery(); 
+  saveState();
+  
+  if(currentFilter!=='all'&&currentFilter!==cat) filterGallery('all');
+  addBtn.textContent='+ Add to portfolio'; addBtn.disabled=false;
+})
     })
     .catch(function(err){
       alert('Upload to Cloudinary failed: ' + err.message);
