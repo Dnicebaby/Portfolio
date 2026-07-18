@@ -1200,7 +1200,7 @@ function addPhoto(){
   if(currentFilter!=='all'&&currentFilter!==cat) filterGallery('all');
   addBtn.textContent='+ Add to portfolio'; addBtn.disabled=false;
 })
-    })
+    
     .catch(function(err){
       alert('Upload to Cloudinary failed: ' + err.message);
       addBtn.textContent='+ Add to portfolio'; addBtn.disabled=false;
