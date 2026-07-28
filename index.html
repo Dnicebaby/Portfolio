@@ -944,7 +944,7 @@ function togglePhotoSelect(id, badge){
 
 // ─── SLOT LIST ────────────────────────────────────────────────
 function renderSlotList(){
-  var c=document.getElementById('photo-slots'); c.innerHTML='';
+  var c=document.getElementById('photo-slots'); if(!c) return; c.innerHTML='';
   ccSlots.forEach(function(s, i){
     var role=SLOT_ROLES[i];
     var row=document.createElement('div');
@@ -971,6 +971,7 @@ function renderSlotList(){
 // ─── CROP PANEL ───────────────────────────────────────────────
 function renderCropPanel(){
   var panel=document.getElementById('crop-panel');
+  if(!panel) return;
   if(activeSlotIdx===null||!ccSlots[activeSlotIdx]||!ccSlots[activeSlotIdx].src){
     panel.innerHTML='<p style="font-size:0.75rem;color:#555;">Click a photo slot above to adjust it.</p>'; return;
   }
@@ -1011,6 +1012,7 @@ function buildTemplateGrid(){
 // ─── CANVAS RENDER ────────────────────────────────────────────
 function renderCanvas(){
   var canvas=document.getElementById('comp-canvas');
+  if(!canvas) return;
   var ctx=canvas.getContext('2d');
   var tmpl=TEMPLATES[currentTemplate];
   var bg=document.getElementById('cc-bg').value;
@@ -1395,3 +1397,4 @@ function _pfCleanBlacklist() {
 </script>
 </body>
 </html>
+  
