@@ -6,7 +6,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Divin Gangbo — Portfolio v2.5</title>
+<title>Divin Gangbo — Portfolio v2.6</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -267,7 +267,7 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid #1a1a1a;display:flex;justify-c
 <audio id="audio-player" crossorigin="anonymous"></audio>
 
 <nav>
-  <div class="nav-logo"><span id="nav-name">Divin Gangbo</span> <span id="pf-sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#999;margin-left:4px;vertical-align:middle;cursor:help;" title="Sync status"></span><span style="font-size:0.6rem;color:#444;letter-spacing:0.08em;margin-left:8px;vertical-align:middle;font-weight:400;">v2.5</span></div>
+  <div class="nav-logo"><span id="nav-name">Divin Gangbo</span> <span id="pf-sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#999;margin-left:4px;vertical-align:middle;cursor:help;" title="Sync status"></span><span style="font-size:0.6rem;color:#444;letter-spacing:0.08em;margin-left:8px;vertical-align:middle;font-weight:400;">v2.6</span></div>
   <div class="nav-links">
     <a href="#about">About</a><a href="#gallery">Portfolio</a><a href="#contact">Contact</a>
   </div>
@@ -373,7 +373,7 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid #1a1a1a;display:flex;justify-c
 <footer>
   <span class="footer-copy" id="footer-copy">© 2025 Divin Gangbo. All rights reserved.</span>
   <div class="footer-links"><a href="https://instagram.com/Dnice_baby">Instagram</a><a href="#">Press</a></div>
-  <div style="font-size:0.65rem;color:#333;margin-top:0.5rem;letter-spacing:0.08em;">v2.5 — Migrated 39 photos to oduiur9j; gallery filters tiny/junk assets</div>
+  <div style="font-size:0.65rem;color:#333;margin-top:0.5rem;letter-spacing:0.08em;">v2.6 — Delete button removes recent uploads from Cloudinary (10-min token)</div>
 </footer>
 
 <div id="pw-modal">
@@ -928,7 +928,34 @@ function filterGallery(cat){
   document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.cat===cat); });
   renderGallery();
 }
-function deletePhoto(id){ if(!confirm('Remove this photo?')) return; photos=photos.filter(function(p){ return p.id!==id; }); renderGallery(); saveState(); }
+function deletePhoto(id){
+  var photo = photos.filter(function(p){ return p.id===id; })[0];
+  if(!photo) return;
+  if(!confirm('Delete this photo permanently from Cloudinary?')) return;
+
+  var tokenFresh = photo.delToken && photo.delAt && (Date.now() - photo.delAt < 9*60*1000); // <9 min
+  if(tokenFresh){
+    // Real deletion from Cloudinary using the delete token
+    fetch('https://api.cloudinary.com/v1_1/' + CL_CLOUD + '/delete_by_token', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token: photo.delToken })
+    }).then(function(r){ return r.json(); })
+      .then(function(res){
+        if(res && res.result==='ok'){
+          photos = photos.filter(function(p){ return p.id!==id; });
+          renderGallery();
+        } else {
+          alert('Cloudinary could not delete it: ' + (res && res.result ? res.result : 'unknown') +
+                '\nYou can remove it manually in the Cloudinary Media Library.');
+        }
+      })
+      .catch(function(e){ alert('Delete failed: ' + e.message); });
+  } else {
+    // Token expired or missing (older photos / the migrated ones):
+    // deletion needs the account, not available from the public site.
+    alert('This photo can only be removed from Cloudinary directly (its 10-minute delete window has passed).\n\nOpen Cloudinary → Media Library → delete it there. It will disappear from the site on the next load.');
+  }
+}
 
 // ─── SELECT MODE ──────────────────────────────────────────────
 function toggleSelectMode(){
@@ -1191,7 +1218,9 @@ function addPhoto(){
 
   // Photo is now in Cloudinary (tagged). Show it immediately by adding to the
   // in-memory list; on any future load it comes back from the Cloudinary list.
-  photos.unshift({id:nextId++, title:title, cat:cat, src:data.secure_url});
+  // Store the delete_token + time so the × button can really delete it (valid ~10 min).
+  photos.unshift({id:nextId++, title:title, cat:cat, src:data.secure_url,
+                  delToken:data.delete_token||null, delAt:Date.now()});
 
   // Reset UI
   uploadedSrc=null; uploadedFile=null;
